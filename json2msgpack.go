@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"sort"
 )
 
 // EncodeJSON ...
@@ -14,8 +15,7 @@ func EncodeJSON(bin []byte) []byte {
 	if err := json.Unmarshal(bin, &obj); err != nil {
 		panic(fmt.Sprintf("Error unmarshalling json: '%v'", err))
 	}
-	fmt.Printf("input: %v", obj)
-	return encodeObj(obj.(map[string]interface{}))
+	return encode(obj)
 }
 
 func isFloat(n float64) bool {
@@ -43,14 +43,14 @@ func encode(v interface{}) (buf []byte) {
 		} else if len <= 0xffff {
 			buf = make([]byte, 3+len)
 			buf[0] = 0xda
-			binary.LittleEndian.PutUint16(buf[1:], uint16(len))
+			binary.BigEndian.PutUint16(buf[1:], uint16(len))
 			for i := 0; i < len; i++ {
 				buf[i+3] = v.(string)[i]
 			}
 		} else {
 			buf = make([]byte, 5+len)
 			buf[0] = 0xdb
-			binary.LittleEndian.PutUint32(buf[1:], uint32(len))
+			binary.BigEndian.PutUint32(buf[1:], uint32(len))
 			for i := 0; i < len; i++ {
 				buf[i+5] = v.(string)[i]
 			}
@@ -60,7 +60,7 @@ func encode(v interface{}) (buf []byte) {
 			buf = make([]byte, 9)
 			buf[0] = 0xcb
 			n := math.Float64bits(v.(float64))
-			binary.LittleEndian.PutUint64(buf[1:], uint64(n))
+			binary.BigEndian.PutUint64(buf[1:], uint64(n))
 		} else {
 			n := v.(float64)
 			if n >= 0 {
@@ -74,15 +74,15 @@ func encode(v interface{}) (buf []byte) {
 				} else if n < 65536 {
 					buf = make([]byte, 3)
 					buf[0] = 0xcd
-					binary.LittleEndian.PutUint16(buf[1:], uint16(n))
+					binary.BigEndian.PutUint16(buf[1:], uint16(n))
 				} else if n <= 0xffffffff {
 					buf = make([]byte, 5)
 					buf[0] = 0xce
-					binary.LittleEndian.PutUint32(buf[1:], uint32(n))
+					binary.BigEndian.PutUint32(buf[1:], uint32(n))
 				} else if n <= 9007199254740991 {
 					buf = make([]byte, 9)
 					buf[0] = 0xcf
-					binary.LittleEndian.PutUint64(buf[1:], uint64(n))
+					binary.BigEndian.PutUint64(buf[1:], uint64(n))
 				}
 			} else {
 				if n >= -32 {
@@ -95,15 +95,15 @@ func encode(v interface{}) (buf []byte) {
 				} else if n >= -32768 {
 					buf = make([]byte, 3)
 					buf[0] = 0xd1
-					binary.LittleEndian.PutUint16(buf[1:], uint16(n))
+					binary.BigEndian.PutUint16(buf[1:], uint16(n))
 				} else if n > -214748365 {
 					buf = make([]byte, 5)
 					buf[0] = 0xd2
-					binary.LittleEndian.PutUint32(buf[1:], uint32(n))
+					binary.BigEndian.PutUint32(buf[1:], uint32(n))
 				} else if n >= -9007199254740991 {
 					buf = make([]byte, 9)
 					buf[0] = 0xd3
-					binary.LittleEndian.PutUint64(buf[1:], uint64(n))
+					binary.BigEndian.PutUint64(buf[1:], uint64(n))
 				}
 			}
 		}
@@ -127,11 +127,11 @@ func encode(v interface{}) (buf []byte) {
 		} else if length < 65536 {
 			buf = make([]byte, 3)
 			buf[0] = 0xdc
-			binary.LittleEndian.PutUint16(buf[1:], uint16(length))
+			binary.BigEndian.PutUint16(buf[1:], uint16(length))
 		} else {
 			buf = make([]byte, 5)
 			buf[0] = 0xdd
-			binary.LittleEndian.PutUint32(buf[1:], uint32(length))
+			binary.BigEndian.PutUint32(buf[1:], uint32(length))
 		}
 
 		var acc []byte
@@ -158,12 +158,26 @@ func encodeObj(obj map[string]interface{}) (buf []byte) {
 	} else {
 		buf = make([]byte, 3)
 		buf[0] = byte(0xde)
-		binary.LittleEndian.PutUint16(buf[1:], uint16(length))
+		binary.BigEndian.PutUint16(buf[1:], uint16(length))
 	}
 
-	for k, v := range obj {
-		pair := append(encode(k), encode(v)...)
+	// GOlang WTF : If you require a stable iteration order in maps
+	// you must maintain a separate data structure that specifies that order.
+	var keys []string
+	for k := range obj {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		// fmt.Println("Key:", k, "Value:", obj[k])
+		pair := append(encode(k), encode(obj[k])...)
 		buf = append(buf, pair...)
 	}
+
+	// undefined order map below is commented in favor to ordering trick , see above
+	// for k, v := range obj {
+	// 	pair := append(encode(k), encode(v)...)
+	// 	buf = append(buf, pair...)
+	// }
 	return
 }
