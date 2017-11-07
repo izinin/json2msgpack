@@ -3,21 +3,16 @@ package json2msgpack
 import (
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"math"
 )
 
-// This attempt is to implement generic MessagePack JSON serialiser
-// The problem we try to solve is as the following:
-//			messagePack component ("github.com/tinylib/msgp") does not support
-//			JSON --> messagePack conversion because the component is a messagePack generator -
-// 			i.e. it allows JSON iteroperability by just providing memory data to JSON conversion
-// 			but not backward, see JSON interoperability (see `msgp.CopyToJSON() and msgp.UnmarshalAsJSON()`)
-// The code implementation is taken from NodeJS MessagePack https://github.com/mcollina/msgpack5/blob/master/lib/encoder.js
-
+// EncodeJSON ...
+// generic MessagePack JSON serialiser
 func EncodeJSON(bin []byte) []byte {
 	var obj interface{}
 	if err := json.Unmarshal(bin, &obj); err != nil {
-		glog.Fatalf("Error unmarshal json: '%v'", err)
+		panic(fmt.Sprintf("Error unmarshalling json: '%v'", err))
 	}
 	return encodeObj(obj.(map[string]interface{}))
 }
@@ -115,12 +110,12 @@ func encode(v interface{}) (buf []byte) {
 		buf = make([]byte, 1)
 		buf[0] = byte(0xc0)
 	case bool:
-		code_bool := 0xc2
+		codeBool := 0xc2
 		if v.(bool) {
-			code_bool = 0xc3
+			codeBool = 0xc3
 		}
 		buf = make([]byte, 1)
-		buf[0] = byte(code_bool)
+		buf[0] = byte(codeBool)
 	case map[string]interface{}:
 		buf = encodeObj(vv)
 	case []interface{}:
@@ -148,7 +143,7 @@ func encode(v interface{}) (buf []byte) {
 		}
 		buf = append(buf, acc...)
 	default:
-		glog.Fatalf("%v (%T) : Parser unknown type", v, vv)
+		panic(fmt.Sprintf("%v (%T) : Parser unknown type", v, vv))
 	}
 	return
 }
