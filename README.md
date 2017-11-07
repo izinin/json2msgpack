@@ -32,5 +32,5 @@ You run Golang test by command line `go test -v`
 MessagePack data conversion for the test criterias are taken from [MessagePack console, Try! menu item](https://msgpack.org/)
 
 ### Golang WTF limitation
-Please note JSON unmarshalling **does not keep dictionary order**, then we use dictionary sorted by key in alphabetical order just to be deterministic. Here is the line.
+Please note JSON unmarshalling **does not keep dictionary order**, then we use dictionary sorted by key in alphabetical order just to be deterministic. [Here is the line.](https://github.com/izinin/json2msgpack/blob/968f39ee8e4d5b8225d210a86db30b8bab030ac6/json2msgpack.go#L177)
 
