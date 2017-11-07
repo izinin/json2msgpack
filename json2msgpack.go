@@ -14,6 +14,7 @@ func EncodeJSON(bin []byte) []byte {
 	if err := json.Unmarshal(bin, &obj); err != nil {
 		panic(fmt.Sprintf("Error unmarshalling json: '%v'", err))
 	}
+	fmt.Printf("input: %v", obj)
 	return encodeObj(obj.(map[string]interface{}))
 }
 
