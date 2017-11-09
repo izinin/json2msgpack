@@ -1,8 +1,11 @@
 package json2msgpack
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
+
+	"github.com/tinylib/msgp/msgp"
 )
 
 func TestJSONParse(t *testing.T) {
@@ -40,4 +43,17 @@ func TestJSONParse(t *testing.T) {
 	if str[2:] != "9405a16d85a166c0a169ac353139313734373035312e31a172a8506d7967726f7570a173b15535333839663137303365633134356639a174cf0000015f96b1b34cae2268656c6c6f206b697474792122" {
 		t.Fatal("mismatch expected case_3")
 	}
+}
+
+func TestMessagePackInterop(t *testing.T) {
+	origStr := `{"compact":true,"schema":[{"name": "igor"}, {"fname": "zinin"}]}`
+	src := bytes.NewBuffer([]byte(EncodeJSON([]byte(origStr))))
+
+	var js bytes.Buffer
+	_, err := msgp.CopyToJSON(&js, src)
+	if err != nil {
+		t.Fatalf("Cannot convert MessagePack to JSON: %v", err)
+	}
+	t.Logf("Original JSON: \n\t%s", origStr)
+	t.Logf("Converted string JSON --> MsgPack --> JSON: \n\t%s", js.String())
 }

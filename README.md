@@ -31,6 +31,30 @@ You run Golang test by command line `go test -v`
 
 MessagePack data conversion for the test criterias are taken from [MessagePack console, Try! menu item](https://msgpack.org/)
 
+### [MessagePack message generator]("github.com/tinylib/msgp") interoperability
+You should see in debug output two JSON strings original and double converted. Note in dictionary type fields order is not guaranteed(see WTF chapter below) 
+```go
+import (
+	"bytes"
+	"fmt"
+
+  json2msgpack "github.com/izinin/json2msgpack"
+	"github.com/tinylib/msgp/msgp"
+)
+
+func main(){
+  origStr := `{"compact":true,"schema":[{"name": "igor"}, {"fname": "zinin"}]}`
+  src := bytes.NewBuffer([]byte(json2msgpack.EncodeJSON([]byte(origStr)))) 
+  var js bytes.Buffer
+  _, err := msgp.CopyToJSON(&js, src)
+  if err != nil {
+  	panic(fmt.Sprintf("Cannot convert MessagePack to JSON: %v", err))
+  }
+  fmt.Printf("Original JSON: \n\t%s", origStr)
+  fmt.Printf("Converted string JSON --> MsgPack --> JSON: \n\t%s", js.String())
+}
+```
+
 ### Golang WTF limitation
 Please note JSON unmarshalling **does not keep dictionary order**, then we use dictionary sorted by key in alphabetical order just to be deterministic. [Here is the line.](https://github.com/izinin/json2msgpack/blob/968f39ee8e4d5b8225d210a86db30b8bab030ac6/json2msgpack.go#L177)
 
